@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, FindOptionsWhere, Like } from 'typeorm';
+import { Repository, FindOptionsWhere, Raw, In } from 'typeorm';
 import { Product } from './entities/product.entity';
 import { FilesService } from 'src/files/files.service';
 import { CreateProductDto } from './dto/create-product.dto';
@@ -43,13 +43,17 @@ export class ProductsService {
 
     const where: FindOptionsWhere<Product> = {};
     if (filters?.name) {
-      where.name = Like(`%${filters.name}%`);
+      where.name = Raw((alias) => `unaccent(${alias}) ILIKE unaccent(:name)`, {
+        name: `%${filters.name}%`,
+      });
     }
     if (filters?.category) {
-      where.category = Like(`%${filters.category}%`);
+      const categories = filters.category.split(',');
+      where.category = In(categories);
     }
     if (filters?.family) {
-      where.family = Like(`%${filters.family}%`);
+      const families = filters.family.split(',');
+      where.family = In(families);
     }
 
     const [data, total] = await this.productRepository.findAndCount({
