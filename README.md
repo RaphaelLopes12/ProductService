@@ -18,6 +18,7 @@ Um microsserviço para gerenciamento de produtos utilizando **Node.js** com **Ne
 - **NestJS**
 - **TypeORM**
 - **PostgreSQL**
+- **Redis** (cache layer)
 - **AWS S3**
 - **JWT (JSON Web Tokens)**
 - **ESLint e Prettier**
@@ -27,7 +28,17 @@ Um microsserviço para gerenciamento de produtos utilizando **Node.js** com **Ne
 - **Node.js**: v16+
 - **npm** ou **yarn**
 - **PostgreSQL**
+- **Redis**: v6+
 - **Credenciais AWS (S3)**
+
+## Cache
+
+Produtos são cacheados no Redis para reduzir a carga no banco de dados.
+
+- Produto por ID: chave `product:{id}`, TTL configurável via `CACHE_TTL_PRODUCT` (padrão: 600s)
+- Listagem paginada: chave `products:list:{params}`, TTL via `CACHE_TTL_LIST` (padrão: 300s)
+- Invalidação automática em `create`, `update` e `delete`
+- Se o Redis estiver indisponível, a API continua funcionando normalmente via fallback ao banco
 
 ## Configuração e Instalação
 
@@ -59,6 +70,12 @@ Um microsserviço para gerenciamento de produtos utilizando **Node.js** com **Ne
   AWS_SECRET_ACCESS_KEY=<sua-aws-secret>
   AWS_REGION=<sua-aws-region>
   AWS_BUCKET_NAME=<seu-bucket-s3>
+  REDIS_HOST=localhost
+  REDIS_PORT=6379
+  REDIS_PASSWORD=
+  REDIS_TLS=false
+  CACHE_TTL_PRODUCT=600
+  CACHE_TTL_LIST=300
   ```
 
 4. Inicialize o banco de dados:
