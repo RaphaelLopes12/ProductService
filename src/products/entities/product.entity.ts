@@ -3,6 +3,7 @@ import {
   Column,
   PrimaryGeneratedColumn,
   CreateDateColumn,
+  Index,
 } from 'typeorm';
 
 @Entity()
@@ -28,9 +29,11 @@ export class Product {
   @Column({ nullable: true })
   ean: string;
 
+  @Index()
   @Column({ nullable: true })
   family: string;
 
+  @Index()
   @Column({ nullable: true })
   category: string;
 
