@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere, Raw, In } from 'typeorm';
 import { Product } from './entities/product.entity';
@@ -28,17 +29,21 @@ function buildListCacheKey(
   return `products:list:${query}`;
 }
 
-const PRODUCT_TTL = () => Number(process.env.CACHE_TTL_PRODUCT ?? 600);
-const LIST_TTL = () => Number(process.env.CACHE_TTL_LIST ?? 300);
-
 @Injectable()
 export class ProductsService {
+  private readonly productTtl: number;
+  private readonly listTtl: number;
+
   constructor(
     @InjectRepository(Product)
     private readonly productRepository: Repository<Product>,
     private readonly filesService: FilesService,
     private readonly cacheService: CacheService,
-  ) {}
+    private readonly configService: ConfigService,
+  ) {
+    this.productTtl = this.configService.get<number>('CACHE_TTL_PRODUCT');
+    this.listTtl = this.configService.get<number>('CACHE_TTL_LIST');
+  }
 
   async create(productData: CreateProductDto): Promise<Product> {
     const { base64Image, ...otherProductData } = productData;
@@ -54,7 +59,7 @@ export class ProductsService {
     });
     const saved = await this.productRepository.save(product);
 
-    await this.cacheService.set(`product:${saved.id}`, saved, PRODUCT_TTL());
+    await this.cacheService.set(`product:${saved.id}`, saved, this.productTtl);
     await this.cacheService.invalidateByPrefix('products:list:');
 
     return saved;
@@ -99,7 +104,7 @@ export class ProductsService {
     });
 
     const result = { data, total, page, lastPage: Math.ceil(total / limit) };
-    await this.cacheService.set(key, result, LIST_TTL());
+    await this.cacheService.set(key, result, this.listTtl);
     return result;
   }
 
@@ -110,7 +115,7 @@ export class ProductsService {
 
     const product = await this.productRepository.findOneBy({ id });
     if (product) {
-      await this.cacheService.set(key, product, PRODUCT_TTL());
+      await this.cacheService.set(key, product, this.productTtl);
     }
     return product;
   }

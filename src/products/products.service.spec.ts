@@ -1,4 +1,5 @@
 import { Test, TestingModule } from '@nestjs/testing';
+import { ConfigService } from '@nestjs/config';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { ProductsService } from './products.service';
 import { Product } from './entities/product.entity';
@@ -15,6 +16,14 @@ describe('ProductsService', () => {
         { provide: getRepositoryToken(Product), useValue: {} },
         { provide: FilesService, useValue: {} },
         { provide: CacheService, useValue: {} },
+        {
+          provide: ConfigService,
+          useValue: {
+            get: jest.fn((key: string) =>
+              ({ CACHE_TTL_PRODUCT: 600, CACHE_TTL_LIST: 300 })[key],
+            ),
+          },
+        },
       ],
     }).compile();
 

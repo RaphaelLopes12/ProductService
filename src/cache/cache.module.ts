@@ -1,4 +1,5 @@
 import { Module } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import { CacheModule, CACHE_MANAGER } from '@nestjs/cache-manager';
 import { redisStore } from 'cache-manager-redis-yet';
 import { CacheService, REDIS_CLIENT } from './cache.service';
@@ -6,14 +7,15 @@ import { CacheService, REDIS_CLIENT } from './cache.service';
 @Module({
   imports: [
     CacheModule.registerAsync({
-      useFactory: async () => ({
+      inject: [ConfigService],
+      useFactory: async (config: ConfigService) => ({
         store: await redisStore({
           socket: {
-            host: process.env.REDIS_HOST ?? 'localhost',
-            port: Number(process.env.REDIS_PORT ?? 6379),
-            tls: process.env.REDIS_TLS === 'true',
+            host: config.get<string>('REDIS_HOST'),
+            port: config.get<number>('REDIS_PORT'),
+            tls: config.get<boolean>('REDIS_TLS'),
           },
-          password: process.env.REDIS_PASSWORD || undefined,
+          password: config.get<string>('REDIS_PASSWORD') || undefined,
         }),
       }),
     }),
