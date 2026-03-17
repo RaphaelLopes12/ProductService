@@ -99,6 +99,7 @@ export class ProductsService {
 
     const [data, total] = await this.productRepository.findAndCount({
       where,
+      order: { createdAt: 'DESC' },
       skip,
       take: limit,
     });
@@ -120,7 +121,10 @@ export class ProductsService {
     return product;
   }
 
-  async update(id: string, productData: UpdateProductDto): Promise<any> {
+  async update(id: string, productData: UpdateProductDto): Promise<Product> {
+    const existing = await this.productRepository.findOneBy({ id });
+    if (!existing) throw new NotFoundException(`Product ${id} not found`);
+
     await this.cacheService.del(`product:${id}`);
     await this.cacheService.invalidateByPrefix('products:list:');
 
@@ -131,13 +135,19 @@ export class ProductsService {
     }
 
     const updateData = { ...otherProductData, ...(imageUrl && { imageUrl }) };
-    return this.productRepository.update(id, updateData);
+    await this.productRepository.update(id, updateData);
+
+    const updated = await this.productRepository.findOneBy({ id });
+    await this.cacheService.set(`product:${id}`, updated, this.productTtl);
+    return updated;
   }
 
-  async remove(id: string) {
+  async remove(id: string): Promise<void> {
     const result = await this.productRepository.delete(id);
+    if (result.affected === 0)
+      throw new NotFoundException(`Product ${id} not found`);
+
     await this.cacheService.del(`product:${id}`);
     await this.cacheService.invalidateByPrefix('products:list:');
-    return result;
   }
 }
