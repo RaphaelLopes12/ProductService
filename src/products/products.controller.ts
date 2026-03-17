@@ -13,6 +13,7 @@ import { ProductsService } from './products.service';
 import { AuthGuard } from '@nestjs/passport';
 import { CreateProductDto } from './dto/create-product.dto';
 import { UpdateProductDto } from './dto/update-product.dto';
+import { FindProductsQueryDto } from './dto/find-products-query.dto';
 
 @Controller('products')
 @UseGuards(AuthGuard('jwt'))
@@ -25,18 +26,13 @@ export class ProductsController {
   }
 
   @Get()
-  findAll(
-    @Query('page') page?: string,
-    @Query('limit') limit?: string,
-    @Query('name') name?: string,
-    @Query('category') category?: string,
-    @Query('family') family?: string,
-  ) {
-    const pageNumber = page ? parseInt(page, 10) : 1;
-    const limitNumber = limit ? parseInt(limit, 10) : 10;
-
-    const filters = { name, category, family };
-    return this.productsService.findAll(pageNumber, limitNumber, filters);
+  findAll(@Query() query: FindProductsQueryDto) {
+    const { page, limit, name, category, family } = query;
+    return this.productsService.findAll(page ?? 1, limit ?? 10, {
+      name,
+      category,
+      family,
+    });
   }
 
   @Get(':id')
