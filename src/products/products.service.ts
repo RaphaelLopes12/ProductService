@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, FindOptionsWhere, Raw, In } from 'typeorm';
@@ -71,7 +71,7 @@ export class ProductsService {
     filters?: { name?: string; category?: string; family?: string },
   ) {
     page = page > 0 ? page : 1;
-    limit = limit > 0 ? limit : 10;
+    limit = Math.min(limit > 0 ? limit : 10, 100);
 
     const key = buildListCacheKey(page, limit, filters ?? {});
     const cached = await this.cacheService.get<{
@@ -108,15 +108,15 @@ export class ProductsService {
     return result;
   }
 
-  async findOne(id: string): Promise<Product | null> {
+  async findOne(id: string): Promise<Product> {
     const key = `product:${id}`;
     const cached = await this.cacheService.get<Product>(key);
     if (cached) return cached;
 
     const product = await this.productRepository.findOneBy({ id });
-    if (product) {
-      await this.cacheService.set(key, product, this.productTtl);
-    }
+    if (!product) throw new NotFoundException(`Product ${id} not found`);
+
+    await this.cacheService.set(key, product, this.productTtl);
     return product;
   }
 
